@@ -1,0 +1,15 @@
+# For ML experiment tracking
+mlflow
+
+# Core ML and data handling libraries
+torch
+pandas
+scikit-learn
+
+# Database connectivity
+sqlalchemy
+psycopg2-binary
+pgvector
+
+# For downloading the dataset
+requests
