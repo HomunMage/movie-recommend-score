@@ -12,6 +12,9 @@ import httpx  # async HTTP client
 # Local imports
 from ServerTee import ServerTee
 
+from route import health_router
+
+
 # --- Logging setup ---
 today_date = datetime.now().strftime("%Y-%m-%d")
 log_file_path = f"log/{today_date}.log"
@@ -33,6 +36,8 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Allows all headers
 )
+
+app.include_router(health_router)
 
 # --- Thread pool for blocking tasks ---
 executor = ThreadPoolExecutor(max_workers=5)
