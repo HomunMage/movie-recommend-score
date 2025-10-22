@@ -12,7 +12,7 @@ import httpx  # async HTTP client
 # Local imports
 from ServerTee import ServerTee
 
-from route import health_router, movies_router
+from route import health_router, movies_router, recommend_router
 
 
 # --- Logging setup ---
@@ -31,14 +31,15 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # List of allowed origins
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(health_router)
 app.include_router(movies_router)
+app.include_router(recommend_router)
 
 # --- Thread pool for blocking tasks ---
 executor = ThreadPoolExecutor(max_workers=5)
@@ -61,27 +62,6 @@ async def run_task(seconds: int):
 @app.get("/status")
 async def status():
     return {"status": "ok"}
-
-
-# --------------------------------------------------------------------
-# 🧠 New route: call Bento API (internal port 3000)
-# --------------------------------------------------------------------
-@app.post("/encode_user")
-async def encode_user(payload: dict):
-    """
-    Forward user_ratings to the Bento service (http://bento:3000/encode_user)
-    """
-    bento_url = os.getenv("BENTO_URL", "http://bento:3000/encode_user")
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            response = await client.post(bento_url, json=payload)
-            response.raise_for_status()
-            return response.json()
-        except httpx.RequestError as e:
-            raise HTTPException(status_code=503, detail=f"Bento service unreachable: {e}")
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
 
 
 # --- Entrypoint for local run ---

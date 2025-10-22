@@ -2,3 +2,4 @@
 
 from .health_routes import router as health_router
 from .movie_routes import router as movies_router
+from .recommend_routes import router as recommend_router
