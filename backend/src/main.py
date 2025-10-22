@@ -5,8 +5,9 @@ import time
 import asyncio
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import httpx  # async HTTP client
 
 # Local imports
 from ServerTee import ServerTee
@@ -19,7 +20,6 @@ print(f"Logging to: {log_file_path}")
 
 # --- FastAPI initialization ---
 app = FastAPI(title="AsyncPG FastAPI Server")
-
 
 # Add CORS middleware
 origins = [
@@ -34,12 +34,9 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-
-# Include your asyncpg-based data routes
-# app.include_router(xxxx_router)
-
 # --- Thread pool for blocking tasks ---
 executor = ThreadPoolExecutor(max_workers=5)
+
 
 # Example blocking function
 def blocking_task(seconds: int):
@@ -47,17 +44,39 @@ def blocking_task(seconds: int):
     time.sleep(seconds)
     return f"Task finished after {seconds} seconds"
 
-# Async endpoint that runs the blocking task in a background thread
+
 @app.get("/run-task/{seconds}")
 async def run_task(seconds: int):
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(executor, blocking_task, seconds)
     return {"result": result}
 
-# Health check endpoint
+
 @app.get("/status")
 async def status():
     return {"status": "ok"}
+
+
+# --------------------------------------------------------------------
+# 🧠 New route: call Bento API (internal port 3000)
+# --------------------------------------------------------------------
+@app.post("/encode_user")
+async def encode_user(payload: dict):
+    """
+    Forward user_ratings to the Bento service (http://bento:3000/encode_user)
+    """
+    bento_url = os.getenv("BENTO_URL", "http://bento:3000/encode_user")
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.post(bento_url, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=503, detail=f"Bento service unreachable: {e}")
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
+
 
 # --- Entrypoint for local run ---
 if __name__ == "__main__":

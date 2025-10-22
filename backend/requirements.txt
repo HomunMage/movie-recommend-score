@@ -3,6 +3,5 @@ uvicorn
 psycopg2-binary
 pgvector
 sqlalchemy
-mlflow
-torch
-pandas
+requests
+httpx

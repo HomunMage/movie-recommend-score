@@ -1,14 +1,12 @@
 services:
   backend:
-    build: ./app
-    container_name: recommender-backend
+    build: ./backend
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      MLFLOW_TRACKING_URI: http://mlflow:5000
+    volumes:
+      - ./backend/src/:/app/src/
     ports:
       - "8000:8000"
-    depends_on:
-      - mlflow
     networks:
       - shared-network
       - app-network
@@ -75,7 +73,6 @@ services:
     working_dir: /app/src
     command: ["python", "inference.py"]
 
-
   bento:
     build: ./bento
     deploy:
@@ -85,11 +82,8 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    ports:
-      - "3000:3000"
     networks:
       - app-network
-    profiles: ["serve"]
 
 networks:
   app-network:
