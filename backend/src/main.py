@@ -12,7 +12,7 @@ import httpx  # async HTTP client
 # Local imports
 from ServerTee import ServerTee
 
-from route import health_router
+from route import health_router, movies_router
 
 
 # --- Logging setup ---
@@ -38,6 +38,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(movies_router)
 
 # --- Thread pool for blocking tasks ---
 executor = ThreadPoolExecutor(max_workers=5)

@@ -1,5 +1,3 @@
-# trainer/train.py
-
 import os
 import pandas as pd
 import numpy as np
@@ -8,6 +6,9 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import mlflow
 import mlflow.pytorch
+
+# Import database functions
+import db
 
 # --- Config ---
 DATA_DIR = os.getenv("DATA_DIR", "data/ml-100k")
@@ -63,13 +64,25 @@ def load_movielens():
     return df
 
 
-def save_movie_vectors(model, path):
+def extract_and_normalize_embeddings(model, num_items):
+    """
+    Extract movie embeddings from model and normalize them
+    
+    Returns:
+        numpy array of shape (num_items, embedding_dim) with normalized vectors
+    """
     movie_vectors = model.item_embedding.weight.data.cpu().numpy()
     norms = np.linalg.norm(movie_vectors, axis=1, keepdims=True)
     movie_vectors = movie_vectors / (norms + 1e-8)
+    print(f"Extracted and normalized {movie_vectors.shape[0]} movie vectors")
+    print(f"Vector shape: {movie_vectors.shape}")
+    return movie_vectors
+
+
+def save_movie_vectors_to_file(movie_vectors, path):
+    """Save movie vectors to numpy file for backup/artifact"""
     np.save(path, movie_vectors)
-    print(f"Saved {movie_vectors.shape[0]} normalized movie vectors to {path}")
-    print(f"Shape: {movie_vectors.shape}")
+    print(f"Saved movie vectors to {path}")
 
 
 # --- Training ---
@@ -108,6 +121,23 @@ def train_model(df):
 
 # --- Main ---
 if __name__ == "__main__":
+    # Wait for database to be ready
+    print("\n" + "="*60)
+    print("Checking database connection...")
+    print("="*60)
+    if not db.wait_for_db():
+        print("❌ Exiting due to database connection failure")
+        exit(1)
+    
+    # Test database setup
+    if not db.test_connection():
+        print("❌ Database setup incomplete. Please run migrations first.")
+        exit(1)
+    
+    print("\n" + "="*60)
+    print("Starting training pipeline...")
+    print("="*60 + "\n")
+    
     # MLflow setup
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
@@ -123,6 +153,7 @@ if __name__ == "__main__":
             "device": str(device),
         })
 
+        # Train model
         model, num_users, num_items = train_model(df)
 
         # Save model checkpoint
@@ -135,8 +166,24 @@ if __name__ == "__main__":
         print(f"Model saved to {MODEL_PATH}")
         mlflow.log_artifact(MODEL_PATH)
 
-        # Save and log movie vectors
-        save_movie_vectors(model, MOVIE_VECTORS_PATH)
+        # Extract normalized embeddings
+        movie_vectors = extract_and_normalize_embeddings(model, num_items)
+        
+        # Save to database (primary storage)
+        print("\n" + "="*60)
+        print("Saving embeddings to database...")
+        print("="*60)
+        db.save_embeddings_to_db(movie_vectors, clear_existing=True)
+        
+        # Get and log database stats
+        stats = db.get_embedding_stats()
+        mlflow.log_metrics({
+            "embeddings_in_db": stats['count'],
+            "embedding_dimension": stats['dimension']
+        })
+        
+        # Also save to file for MLflow artifact
+        save_movie_vectors_to_file(movie_vectors, MOVIE_VECTORS_PATH)
         mlflow.log_artifact(MOVIE_VECTORS_PATH)
 
         # Log full model to MLflow
@@ -147,4 +194,10 @@ if __name__ == "__main__":
             "num_items": num_items
         })
 
-        print("✅ Training run logged to MLflow successfully.")
+        print("\n" + "="*60)
+        print("✅ Training complete!")
+        print("="*60)
+        print(f"📊 Model: {num_users} users, {num_items} movies")
+        print(f"📊 Embeddings: {stats['count']} vectors (dim={stats['dimension']}) in database")
+        print(f"🔗 MLflow: {MLFLOW_TRACKING_URI}")
+        print("="*60 + "\n")
