@@ -76,6 +76,21 @@ services:
     command: ["python", "inference.py"]
 
 
+  bento:
+    build: ./bento
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    profiles: ["serve"]
+
 networks:
   app-network:
     driver: bridge

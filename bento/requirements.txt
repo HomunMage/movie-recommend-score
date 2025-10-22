@@ -1,0 +1,15 @@
+# Core ML/DL frameworks
+# torch
+numpy
+
+# Data processing
+pandas
+
+# BentoML for serving
+bentoml
+
+# API and validation
+pydantic
+
+# Testing/client (optional)
+requests

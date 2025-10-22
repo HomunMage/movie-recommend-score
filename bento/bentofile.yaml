@@ -1,0 +1,15 @@
+service: "service:MovieLensEncoder"
+labels:
+  owner: ml-team
+  project: movielens-recommender
+include:
+  - "service.py"
+  - "movielens_model.pt"
+python:
+  packages:
+    - torch
+    - numpy
+    - pydantic
+docker:
+  distro: debian
+  python_version: "3.11"
