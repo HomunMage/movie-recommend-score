@@ -6,7 +6,7 @@ This project demonstrates an end-to-end **AI/ML workflow** using containerized s
 
 dataset → trainer (PyTorch, GPU)
 → MLflow (experiment tracking)
-→ BentoML (model packaging & inference)
+→ BentoML (model packaging & inference on GPU)
 → backend API (FastAPI)
 → pgvector (vector storage)
 
@@ -39,9 +39,10 @@ $ curl -X POST "http://localhost:8000/recommend?limit=5" \
 
 Response:
 ```
-[{"movie_id":1025,"title":null,"genres":null,"similarity":0.3218059241771698},{"movie_id":769,"title":null,"genres":null,"similarity":0.31998586654663086},{"movie_id":370,"title":nul
-l,"genres":null,"similarity":0.3095213359309045},{"movie_id":1265,"title":null,"genres":null,"similarity":0.3009481430053711},{"movie_id":938,"title":null,"genres":null,"similarity":
-0.30066842736805777}](base)
+[{"movie_id":1025,"similarity":0.3218059241771698},{"movie_id":769,"similarity":
+0.31998586654663086},{"movie_id":370,"similarity":0.3095213359309045},{"movie_id
+":1265,"similarity":0.3009481430053711},{"movie_id":938,"similarity":0.300668427
+36805777}]
 
 ```
 
