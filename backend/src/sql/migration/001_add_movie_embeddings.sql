@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS movie_embeddings (
 CREATE INDEX IF NOT EXISTS movie_embeddings_vector_idx 
 ON movie_embeddings 
 USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
+WITH (lists = 10);
 
 -- Optional: Add metadata table for movies if needed
 CREATE TABLE IF NOT EXISTS movies (
