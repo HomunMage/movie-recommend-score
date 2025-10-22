@@ -1,4 +1,4 @@
-# inference.py
+# single/inference.py
 
 import torch
 import torch.nn as nn
